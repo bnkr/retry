@@ -1,5 +1,5 @@
 mock
-pbr
+pbr<5
 pytest
 tox
 wheel
