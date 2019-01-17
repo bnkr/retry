@@ -4,13 +4,13 @@ except ImportError:
     from mock import create_autospec
 
 try:
-    from unittest.mock import MagicMock
+    from unittest.mock import MagicMock, patch
 except ImportError:
-    from mock import MagicMock
+    from mock import MagicMock, patch
 
 import time
-
 import pytest
+import logging
 
 from retry.api import retry_call
 from retry.api import retry
@@ -129,6 +129,31 @@ def test_retry_call():
         pass
 
     assert f_mock.call_count == tries
+
+
+def test_retry_logging_works_with_unicode(capsys):
+    f_mock = MagicMock(side_effect=RuntimeError(u'weird char: \'\u00ce\''))
+
+    import logging.handlers
+
+    try:
+        import StringIO
+    except ImportError:
+        import io as StringIO
+
+    io = StringIO.StringIO()
+    stream = logging.StreamHandler(io)
+    logger = logging.Logger('testing')
+    logger.addHandler(stream)
+    logger.setLevel(logging.DEBUG)
+
+    try:
+        retry_call(f_mock, exceptions=RuntimeError, tries=2, logger=logger)
+    except RuntimeError:
+        pass
+
+    captured = capsys.readouterr()
+    assert u'\u00ce' in io.getvalue()
 
 
 def test_retry_call_2():
